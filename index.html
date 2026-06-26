@@ -313,6 +313,7 @@ const CARDS = [
 const state = {
   pile: [],         // shuffled remaining indices; pop() = top of deck
   current: null,    // {index, text}
+  backStack: [],    // cards swiped left, so swipe-right can pull them back
   history: [],
   photos: []
 };
@@ -375,7 +376,7 @@ function drawCard(isRedraw=false){
   $("#frontNum").textContent = "#" + (idx+1);
   $("#frontText").textContent = text;
   $("#hint").textContent = "";
-  $("#swipeTip").textContent = "Swipe left to send to the back of the deck";
+  updateTip();
 
   applyCardBack();
   flipTo(true);
@@ -445,6 +446,8 @@ function onUp(){
   const threshold = 90;
   if(dragDX < -threshold){
     sendToBack();
+  } else if(dragDX > threshold){
+    bringPrevious();
   } else {
     resetSwipe(true); // snap back
   }
@@ -457,8 +460,11 @@ function sendToBack(){
   swipeWrap.style.transform = "translateX(-130%) rotate(-14deg)";
   swipeWrap.style.opacity = "0";
   setTimeout(()=>{
-    // recycle the swiped card to the back (bottom) of the pile
-    if(state.current) state.pile.unshift(state.current.index);
+    // remember this card so swipe-right can pull it back, then recycle to the bottom
+    if(state.current){
+      state.backStack.push(state.current.index);
+      state.pile.unshift(state.current.index);
+    }
     state.current = null;
     flipTo(false);            // card off-screen, flip to its back
     resetSwipe(false);        // snap wrapper back to centre, no transition
@@ -469,6 +475,49 @@ function sendToBack(){
     // leave it face-down: a tap reveals the next forfeit
     $("#hint").textContent = "Tap the deck to reveal the next card";
     $("#swipeTip").textContent = "";
+  }, 330);
+}
+
+function updateTip(){
+  $("#swipeTip").textContent = state.backStack.length
+    ? "Swipe left for next \u00b7 swipe right for previous"
+    : "Swipe left to send to the back of the deck";
+}
+
+function bringPrevious(){
+  if(state.backStack.length === 0){ resetSwipe(true); return; }  // nothing to go back to
+  swipeLocked = true;
+  haptic(8);
+  swipeWrap.classList.add("animate");
+  swipeWrap.style.transform = "translateX(130%) rotate(14deg)";
+  swipeWrap.style.opacity = "0";
+  setTimeout(()=>{
+    const prev = state.backStack.pop();
+    const k = state.pile.indexOf(prev);
+    if(k >= 0) state.pile.splice(k, 1);                       // it was recycled into the pile
+    if(state.current) state.pile.push(state.current.index);   // current card returns to the top
+    state.current = {index:prev, text:CARDS[prev]};
+
+    $("#frontNum").textContent = "#" + (prev+1);
+    $("#frontText").textContent = CARDS[prev];
+    $("#hint").textContent = "";
+    flipTo(true);              // reveal the previous forfeit, face-up
+    updateTip();
+    updateCounter();
+
+    // slide the restored card in from the left
+    swipeWrap.classList.remove("animate");
+    swipeWrap.style.transform = "translateX(-130%) rotate(-10deg)";
+    swipeWrap.style.opacity = "0";
+    requestAnimationFrame(()=>{
+      swipeWrap.classList.add("animate");
+      swipeWrap.style.transform = "";
+      swipeWrap.style.opacity = "";
+      setTimeout(()=>swipeWrap.classList.remove("animate"), 380);
+    });
+
+    swipeLocked = false;
+    dragDX = 0;
   }, 330);
 }
 
@@ -556,6 +605,7 @@ function renderThumbs(){
 /* ---------------- Settings actions ---------------- */
 $("#reshuffleBtn").onclick = ()=>{
   freshPile();
+  state.backStack = [];
   resetCardFace();
   updateCounter();
   $("#settSheet").classList.remove("active");
