@@ -420,8 +420,7 @@ function resetSwipe(animate){
 
 function onDown(e){
   dragDX = 0;  // reset on every press so a stale swipe delta can't block a tap
-  // only allow swiping a face-up card
-  if(!isFlipped || swipeLocked) return;
+  if(swipeLocked) return;        // allow dragging whether the card is face-up or face-down
   dragging = true;
   const p = e.touches ? e.touches[0] : e;
   dragStartX = p.clientX; dragStartY = p.clientY; dragDX = 0;
@@ -444,10 +443,10 @@ function onUp(){
   if(!dragging) return;
   dragging = false;
   const threshold = 90;
-  if(dragDX < -threshold){
-    sendToBack();
-  } else if(dragDX > threshold){
-    bringPrevious();
+  if(dragDX > threshold){
+    bringPrevious();                              // swipe right: pull the previous card back
+  } else if(dragDX < -threshold && isFlipped && state.current){
+    sendToBack();                                // swipe left: only a revealed card goes to the back
   } else {
     resetSwipe(true); // snap back
   }
@@ -472,8 +471,8 @@ function sendToBack(){
     updateCounter();
     swipeLocked = false;
     dragDX = 0;                // clear stale swipe delta so the next tap can draw
-    // leave it face-down: a tap reveals the next forfeit
-    $("#hint").textContent = "Tap the deck to reveal the next card";
+    // leave it face-down: tap reveals the next forfeit, swipe right goes back
+    $("#hint").textContent = "Tap to reveal next \u00b7 swipe right to go back";
     $("#swipeTip").textContent = "";
   }, 330);
 }
