@@ -418,6 +418,7 @@ function resetSwipe(animate){
 }
 
 function onDown(e){
+  dragDX = 0;  // reset on every press so a stale swipe delta can't block a tap
   // only allow swiping a face-up card
   if(!isFlipped || swipeLocked) return;
   dragging = true;
@@ -464,6 +465,7 @@ function sendToBack(){
     applyCardBack();          // show a (possibly new) back for the next card
     updateCounter();
     swipeLocked = false;
+    dragDX = 0;                // clear stale swipe delta so the next tap can draw
     // leave it face-down: a tap reveals the next forfeit
     $("#hint").textContent = "Tap the deck to reveal the next card";
     $("#swipeTip").textContent = "";
