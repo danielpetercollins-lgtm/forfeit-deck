@@ -101,6 +101,7 @@
     transform-style:preserve-3d;transition:transform .62s var(--ease);
   }
   .card.flipped{transform:rotateY(180deg);}
+  .card.flipped .photo-frame, .card.flipped .back-fallback{visibility:hidden;}  /* safety net if backface culling fails */
   .face{
     position:absolute;inset:0;border-radius:var(--radius-card);backface-visibility:hidden;-webkit-backface-visibility:hidden;
     display:flex;flex-direction:column;align-items:center;justify-content:center;
@@ -139,10 +140,12 @@
     width:62%;aspect-ratio:1/1;border-radius:16px;overflow:hidden;
     background:#fff;padding:7px;
     box-shadow:0 16px 36px rgba(0,0,0,.55), 0 0 0 1px rgba(0,0,0,.12);
+    -webkit-backface-visibility:hidden;backface-visibility:hidden;  /* cull with the back face on flip (iOS Safari) */
   }
   .photo-frame img{width:100%;height:100%;object-fit:cover;border-radius:10px;display:block;}
   .back-fallback{position:absolute;z-index:1;inset:0;display:flex;align-items:center;justify-content:center;
-    font-weight:700;letter-spacing:.16em;font-size:1.05rem;color:rgba(255,255,255,.92);text-transform:uppercase;}
+    font-weight:700;letter-spacing:.16em;font-size:1.05rem;color:rgba(255,255,255,.92);text-transform:uppercase;
+    -webkit-backface-visibility:hidden;backface-visibility:hidden;}
   @keyframes hue{from{filter:hue-rotate(0deg)}to{filter:hue-rotate(360deg)}}
   .front{
     transform:rotateY(180deg);background:linear-gradient(172deg,#fbfbfd,#eef0f3);
